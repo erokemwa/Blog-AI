@@ -1,0 +1,799 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Creatures of AI · Lesson 1 — Let me catch you up</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..700&family=Hanken+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0c0b10;
+    --ink2:#14121b;
+    --panel:#171522;
+    --paper:#ECE6DA;
+    --muted:#8f897e;
+    --amber:#E9A23B;
+    --coral:#F0795A;
+    --cyan:#6BD6C4;
+    --line:rgba(236,230,218,.12);
+    --line2:rgba(236,230,218,.06);
+    --serif:"Fraunces",Georgia,serif;
+    --sans:"Hanken Grotesk",system-ui,sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--ink);
+    color:var(--paper);
+    font-family:var(--sans);
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* texture */
+  body::before{
+    content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-image:
+      radial-gradient(1200px 600px at 80% -10%, rgba(233,162,59,.10), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(107,214,196,.07), transparent 60%);
+  }
+  body::after{
+    content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.035;
+    background-image:linear-gradient(var(--paper) 1px,transparent 1px),linear-gradient(90deg,var(--paper) 1px,transparent 1px);
+    background-size:46px 46px;
+  }
+
+  .deck{position:relative;z-index:1;height:100%;width:100%}
+  .slide{
+    position:absolute;inset:0;display:none;
+    padding:clamp(28px,6vw,110px);
+    flex-direction:column;justify-content:center;
+    height:100%;
+  }
+  .slide.active{display:flex}
+  .wrap{max-width:1150px;width:100%;margin:0 auto}
+
+  /* reveal animation */
+  .reveal{opacity:0;transform:translateY(20px)}
+  .slide.is-active .reveal{animation:rise .68s cubic-bezier(.2,.75,.2,1) forwards;animation-delay:calc(var(--d,0)*1ms)}
+  @keyframes rise{to{opacity:1;transform:none}}
+
+  /* typography */
+  h1{font-family:var(--serif);font-weight:500;line-height:.98;letter-spacing:-.02em}
+  h2{font-family:var(--serif);font-weight:500;line-height:1.0;letter-spacing:-.015em}
+  .kicker{font-family:var(--mono);font-size:clamp(11px,1vw,13px);letter-spacing:.28em;text-transform:uppercase;color:var(--amber)}
+  .lede{font-size:clamp(17px,1.7vw,23px);line-height:1.5;color:var(--paper);max-width:46ch}
+  .muted{color:var(--muted)}
+  .amber{color:var(--amber)} .coral{color:var(--coral)} .cyan{color:var(--cyan)}
+  .mono{font-family:var(--mono)}
+  em.s{font-style:italic;font-family:var(--serif)}
+  strong{font-weight:600}
+  a{color:var(--cyan);text-decoration:none;border-bottom:1px solid rgba(107,214,196,.35)}
+
+  /* chrome */
+  .hud{position:fixed;z-index:20;bottom:22px;left:0;right:0;display:flex;align-items:center;gap:18px;padding:0 28px;pointer-events:none}
+  .progress{flex:1;height:2px;background:var(--line);border-radius:2px;overflow:hidden}
+  .progress > i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--amber),var(--coral));transition:width .5s cubic-bezier(.2,.7,.2,1)}
+  .counter{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.1em}
+  .brand{position:fixed;z-index:20;top:24px;left:28px;font-family:var(--mono);font-size:12px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase}
+  .brand b{color:var(--paper);font-weight:500}
+  .nav{position:fixed;z-index:20;top:20px;right:28px;display:flex;gap:8px}
+  .nav button{pointer-events:auto;background:var(--panel);border:1px solid var(--line);color:var(--paper);width:38px;height:32px;border-radius:8px;cursor:pointer;font-size:15px;transition:.2s}
+  .nav button:hover{border-color:var(--amber);color:var(--amber)}
+
+  /* generic bits */
+  .tag{display:inline-block;font-family:var(--mono);font-size:12px;letter-spacing:.06em;padding:5px 11px;border:1px solid var(--line);border-radius:999px;color:var(--muted)}
+  .grid{display:grid;gap:18px}
+  .card{background:linear-gradient(180deg,var(--panel),var(--ink2));border:1px solid var(--line);border-radius:16px;padding:22px 22px}
+  .card h3{font-family:var(--mono);font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);margin-bottom:9px}
+  .card p{font-size:15px;line-height:1.5;color:var(--paper)}
+  .dim{color:var(--muted)}
+
+  .pill-row{display:flex;flex-wrap:wrap;gap:10px}
+
+  /* section divider */
+  .divider .num{font-family:var(--mono);font-size:clamp(13px,1.3vw,16px);color:var(--coral);letter-spacing:.3em}
+  .divider h1{font-size:clamp(48px,11vw,150px);margin-top:8px}
+  .divider .sub{font-size:clamp(16px,1.6vw,21px);color:var(--muted);margin-top:18px;max-width:40ch}
+
+  /* title slide */
+  .title h1{font-size:clamp(46px,10vw,128px)}
+  .title .glyph{font-family:var(--mono);color:var(--amber)}
+
+  /* timeline */
+  .tl{position:relative;margin-top:30px;border-top:1px solid var(--line);padding-top:0}
+  .tl-track{display:flex;gap:0;overflow-x:auto;scrollbar-width:thin;padding-bottom:8px}
+  .tl-item{flex:0 0 auto;min-width:150px;padding:18px 18px 6px;border-right:1px solid var(--line2);position:relative;cursor:default}
+  .tl-item::before{content:"";position:absolute;top:-5px;left:18px;width:9px;height:9px;border-radius:50%;background:var(--ink);border:2px solid var(--amber)}
+  .tl-item:hover::before{background:var(--amber);box-shadow:0 0 16px var(--amber)}
+  .tl-date{font-family:var(--mono);font-size:11px;color:var(--coral);letter-spacing:.05em}
+  .tl-title{font-size:15px;font-weight:600;margin-top:6px;line-height:1.25}
+  .tl-desc{font-size:12.5px;color:var(--muted);margin-top:5px;line-height:1.4}
+
+  /* tokenizer */
+  .demo{background:var(--ink2);border:1px solid var(--line);border-radius:16px;padding:20px}
+  .demo textarea{width:100%;background:#0a0910;border:1px solid var(--line);border-radius:10px;color:var(--paper);font-family:var(--mono);font-size:15px;padding:12px;resize:none;line-height:1.5}
+  .tok{display:inline-block;padding:2px 6px;margin:2px 2px;border-radius:5px;font-family:var(--mono);font-size:14px;line-height:1.7;white-space:pre}
+  .tokwrap{margin-top:14px;min-height:64px;line-height:2}
+  .stat{font-family:var(--mono);font-size:13px;color:var(--muted)}
+  .stat b{color:var(--amber);font-weight:600}
+
+  /* context window */
+  .cw{background:var(--ink2);border:1px solid var(--line);border-radius:16px;padding:22px}
+  .cwbar{height:42px;border-radius:10px;background:#0a0910;border:1px solid var(--line);overflow:hidden;display:flex;position:relative}
+  .cwseg{height:100%;transition:width .6s cubic-bezier(.2,.7,.2,1);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;color:#0c0b10;font-weight:700;white-space:nowrap;overflow:hidden}
+  .cw-controls{display:flex;gap:10px;align-items:center;margin-top:16px;flex-wrap:wrap}
+  .cw-controls input[type=range]{flex:1;min-width:160px;accent-color:var(--amber)}
+  .btn{background:var(--panel);border:1px solid var(--line);color:var(--paper);font-family:var(--mono);font-size:13px;padding:9px 14px;border-radius:9px;cursor:pointer;transition:.2s}
+  .btn:hover{border-color:var(--coral);color:var(--coral)}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+
+  /* camps */
+  .camps{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  .camp{background:linear-gradient(180deg,var(--panel),var(--ink2));border:1px solid var(--line);border-radius:16px;padding:18px 20px;cursor:pointer;transition:.25s;position:relative;overflow:hidden}
+  .camp:hover{transform:translateY(-3px);border-color:var(--accent,var(--amber))}
+  .camp .vibe{font-family:var(--mono);font-size:12px;color:var(--accent,var(--amber));letter-spacing:.05em}
+  .camp h3{font-family:var(--serif);font-size:22px;font-weight:500;margin:6px 0 4px}
+  .camp .who{font-size:13px;color:var(--muted)}
+  .camp .more{font-size:13.5px;line-height:1.5;color:var(--paper);max-height:0;opacity:0;overflow:hidden;transition:.35s;margin-top:0}
+  .camp.open .more{max-height:200px;opacity:1;margin-top:12px}
+  .camp .hint{position:absolute;top:16px;right:18px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+  /* shoggoth */
+  .two{display:grid;grid-template-columns:1.05fr .95fr;gap:42px;align-items:center}
+  ul.clean{list-style:none}
+  ul.clean li{position:relative;padding-left:22px;margin:11px 0;font-size:clamp(15px,1.5vw,18px);line-height:1.45}
+  ul.clean li::before{content:"▸";position:absolute;left:0;color:var(--amber)}
+
+  .quote{font-family:var(--serif);font-style:italic;font-size:clamp(24px,3.6vw,52px);line-height:1.12;letter-spacing:-.01em}
+  .quote .by{display:block;font-style:normal;font-family:var(--mono);font-size:14px;letter-spacing:.1em;color:var(--muted);margin-top:24px}
+
+  .hintbar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:20;font-family:var(--mono);font-size:11px;color:var(--muted);opacity:.0;transition:opacity .4s;pointer-events:none}
+  .splash .hintbar{opacity:1}
+
+  @media (max-width:820px){
+    .two{grid-template-columns:1fr;gap:24px}
+    .camps{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body class="splash">
+
+<div class="brand"><b>Creatures of AI</b> &nbsp;·&nbsp; Lesson 01</div>
+<div class="nav">
+  <button id="prev" aria-label="Previous">‹</button>
+  <button id="next" aria-label="Next">›</button>
+  <button id="fs" aria-label="Toggle fullscreen" title="Fullscreen (F)">⛶</button>
+</div>
+
+<div class="deck" id="deck">
+
+  <!-- 1 · TITLE -->
+  <section class="slide title">
+    <div class="wrap">
+      <div class="kicker reveal" style="--d:0">A field guide for builders · Lesson 1 of 3</div>
+      <h1 class="reveal" style="--d:120;margin-top:18px">Creatures<span class="glyph"> of </span>AI</h1>
+      <p class="lede reveal" style="--d:260;margin-top:26px"><span class="amber">Let me catch you up.</span> A holistic tour of how this stuff actually works — the fundamentals underneath all the noise.</p>
+      <div class="pill-row reveal" style="--d:380;margin-top:30px">
+        <span class="tag">01 · Foundations</span>
+        <span class="tag dim">02 · Agents, Tools &amp; Harnesses</span>
+        <span class="tag dim">03 · Coding Agents</span>
+      </div>
+    </div>
+    <div class="hintbar">← → to navigate · press F for fullscreen</div>
+  </section>
+
+  <!-- 2 · WHO -->
+  <section class="slide">
+    <div class="wrap two">
+      <div>
+        <div class="kicker reveal" style="--d:0">Whoami</div>
+        <h2 class="reveal" style="--d:90;font-size:clamp(34px,5vw,64px);margin-top:14px">Hi, I'm Don.</h2>
+        <p class="lede reveal" style="--d:200;margin-top:20px">Founder of <strong>Cradle Labs</strong> <span class="muted mono">cradlelabs.io</span>. I've been building with large language models since they shipped in late 2022 — early on GitHub Copilot when it was basically the <em class="s">only</em> coding agent in VS Code.</p>
+        <p class="lede reveal" style="--d:320;margin-top:16px">Long enough to watch how we write software change underneath us.</p>
+      </div>
+      <div class="grid reveal" style="--d:300;grid-template-columns:1fr">
+        <div class="card"><h3>Glove</h3><p>An agent runtime — a framework for building agents. Started late 2023, <em class="s">before</em> tools existed. Shipped January this year. <span class="dim">glove.dterminal.net</span></p></div>
+        <div class="card"><h3>Proxima</h3><p>Agentic orchestration for teams that build with AI. <span class="dim">proxima.dterminal.net</span></p></div>
+        <div class="card"><h3>The throughline</h3><p>Model jumps unlocked the work. Capability and tooling rose together — that's the story of the last three years.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · FRAMING -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="kicker reveal" style="--d:0">The only thing worth memorising</div>
+      <h2 class="reveal" style="--d:90;font-size:clamp(30px,5vw,62px);margin-top:16px;max-width:18ch">The apps change weekly.<br>The <span class="amber">fundamentals</span> don't.</h2>
+      <div class="grid reveal" style="--d:240;grid-template-columns:repeat(3,1fr);margin-top:40px">
+        <div class="card"><h3 style="color:var(--coral)">It's all experiments</h3><p>Most of what's happening — at the labs and at the grassroots — is experimentation. Ideas will be abandoned. Tools will die.</p></div>
+        <div class="card"><h3 style="color:var(--coral)">So aim lower</h3><p>Don't chase the tool of the week. Learn <em class="s">how the pieces fit</em>: models, tokens, prompts, context, tools.</p></div>
+        <div class="card"><h3 style="color:var(--coral)">Then you keep up forever</h3><p>When the surface changes — and it will, fast — you'll recognise it. The grammar stays the same.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · SECTION: MODELS -->
+  <section class="slide divider">
+    <div class="wrap">
+      <div class="num reveal" style="--d:0">PART ONE</div>
+      <h1 class="reveal" style="--d:120">Models</h1>
+      <p class="sub reveal" style="--d:260">The thing in the middle. What it can do, where it comes from, and where it runs.</p>
+    </div>
+  </section>
+
+  <!-- 5 · MODEL CAPABILITIES / how they're made -->
+  <section class="slide">
+    <div class="wrap two">
+      <div>
+        <div class="kicker reveal" style="--d:0">What a model is</div>
+        <h2 class="reveal" style="--d:90;font-size:clamp(28px,4vw,48px);margin-top:14px">Modalities &amp; how they're grown</h2>
+        <ul class="clean reveal" style="--d:220;margin-top:18px">
+          <li><strong>Modalities:</strong> text, image, audio/speech — increasingly all in one model.</li>
+          <li><strong>Next-token prediction:</strong> most LLMs simply predict the next chunk of text. That's it. Everything else emerges from that.</li>
+          <li><strong>Diffusion:</strong> the other recipe — start with noise, denoise into an image (and now some text models).</li>
+          <li><strong>RLHF:</strong> reinforcement learning from human feedback — the layer that makes a raw model <em class="s">helpful and polite.</em></li>
+        </ul>
+      </div>
+      <div class="reveal" style="--d:320">
+        <svg viewBox="0 0 360 320" width="100%" style="max-width:360px;margin:0 auto;display:block">
+          <defs>
+            <radialGradient id="g1" cx="50%" cy="45%"><stop offset="0%" stop-color="#3a3450"/><stop offset="100%" stop-color="#1a1726"/></radialGradient>
+          </defs>
+          <!-- the shoggoth: messy body -->
+          <path d="M60 210 q-20 -70 30 -100 q-10 -50 50 -55 q30 -40 70 -10 q60 -25 75 35 q45 20 20 75 q25 50 -25 70 q-20 45 -70 25 q-45 30 -85 -5 q-55 0 -60 -60 z" fill="url(#g1)" stroke="#4a4263" stroke-width="2"/>
+          <!-- chaotic eyes (the raw model) -->
+          <g fill="#E9A23B">
+            <circle cx="120" cy="150" r="7"/><circle cx="150" cy="120" r="5"/><circle cx="190" cy="140" r="6"/>
+            <circle cx="100" cy="190" r="4"/><circle cx="230" cy="160" r="5"/><circle cx="170" cy="190" r="4"/>
+            <circle cx="210" cy="200" r="6"/><circle cx="140" cy="210" r="3"/>
+          </g>
+          <g fill="#0c0b10"><circle cx="120" cy="150" r="3"/><circle cx="190" cy="140" r="2.5"/><circle cx="230" cy="160" r="2"/><circle cx="210" cy="200" r="2.5"/></g>
+          <!-- the friendly mask -->
+          <circle cx="180" cy="160" r="58" fill="#ECE6DA" stroke="#E9A23B" stroke-width="3"/>
+          <circle cx="160" cy="150" r="6" fill="#0c0b10"/><circle cx="200" cy="150" r="6" fill="#0c0b10"/>
+          <path d="M150 178 q30 26 60 0" fill="none" stroke="#0c0b10" stroke-width="4" stroke-linecap="round"/>
+          <text x="180" y="300" text-anchor="middle" fill="#8f897e" font-family="JetBrains Mono" font-size="12">a chaotic predictor wearing a polite mask</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · FRONTIER LABS -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="kicker reveal" style="--d:0">The players · landscape mid-2026 (stale by next week — that's the point)</div>
+      <h2 class="reveal" style="--d:90;font-size:clamp(28px,4.4vw,54px);margin-top:14px">Frontier labs &amp; <span class="amber">open vs closed weights</span></h2>
+      <div class="grid reveal" style="--d:220;grid-template-columns:repeat(4,1fr);margin-top:28px">
+        <div class="card"><h3>Closed weights</h3><p class="dim" style="font-size:13.5px">You rent it via API. OpenAI (GPT-5.x), Anthropic (Claude Opus / Sonnet), Google DeepMind (Gemini 3.x), xAI (Grok).</p></div>
+        <div class="card"><h3 style="color:var(--cyan)">Open weights</h3><p class="dim" style="font-size:13.5px">You download &amp; run it. DeepSeek, Meta's Llama, Mistral, Qwen/Alibaba, Zhipu (GLM), Moonshot (Kimi).</p></div>
+        <div class="card"><h3 style="color:var(--coral)">Why it matters</h3><p class="dim" style="font-size:13.5px">Closed = best frontier, less control, ongoing cost. Open = sovereignty, privacy, run-it-yourself, catching up fast.</p></div>
+        <div class="card"><h3>The cadence</h3><p class="dim" style="font-size:13.5px">New flagship roughly monthly. The ceiling moves constantly. Don't anchor to a version number.</p></div>
+      </div>
+      <p class="lede reveal muted" style="--d:360;margin-top:26px;max-width:60ch">Open weights are usually a step behind the closed frontier — but only a step, and the gap keeps shrinking. <span class="cyan">"Good enough, on my own hardware"</span> is now a real strategy.</p>
+    </div>
+  </section>
+
+  <!-- 7 · INFERENCE / ROUTERS -->
+  <section class="slide">
+    <div class="wrap two">
+      <div>
+        <div class="kicker reveal" style="--d:0">Where the model runs</div>
+        <h2 class="reveal" style="--d:90;font-size:clamp(28px,4vw,50px);margin-top:14px">Inference: local vs cloud</h2>
+        <ul class="clean reveal" style="--d:220;margin-top:18px">
+          <li><strong>Cloud:</strong> the lab hosts it, you call an API. Best models, zero hardware, pay per token, data leaves your machine.</li>
+          <li><strong>Local:</strong> open weights on your own GPU/Mac. Private, free-after-hardware, offline — but smaller &amp; slower.</li>
+        </ul>
+        <p class="lede reveal" style="--d:340;margin-top:20px"><span class="amber">"Inference"</span> = the act of running a trained model to get an answer. Training builds it; inference uses it.</p>
+      </div>
+      <div class="reveal" style="--d:300">
+        <div class="card" style="border-color:var(--cyan)"><h3 style="color:var(--cyan)">Model routers · e.g. OpenRouter</h3>
+          <p style="font-size:14.5px">One API in front of <em class="s">hundreds</em> of models. Switch providers with a string. Route by price, speed, or capability — and never get locked to one vendor.</p>
+          <div class="mono dim" style="font-size:12.5px;margin-top:14px;background:#0a0910;border:1px solid var(--line);border-radius:8px;padding:12px">
+            <span class="coral">model</span>: <span class="amber">"anthropic/claude-opus"</span><br>
+            <span class="coral">model</span>: <span class="amber">"deepseek/deepseek-chat"</span><br>
+            <span class="coral">model</span>: <span class="amber">"meta/llama-...."</span><br>
+            <span class="dim"># same request shape, different brain</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · SECTION: TOKENS -->
+  <section class="slide divider">
+    <div class="wrap">
+      <div class="num reveal" style="--d:0">PART TWO</div>
+      <h1 class="reveal" style="--d:120">Tokens</h1>
+      <p class="sub reveal" style="--d:260">Models don't see words or letters. They see tokens. Get this and a lot stops being mysterious.</p>
+    </div>
+  </section>
+
+  <!-- 9 · TOKENIZER DEMO -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="kicker reveal" style="--d:0">Live demo · type and watch</div>
+      <h2 class="reveal" style="--d:90;font-size:clamp(26px,4vw,46px);margin-top:12px">A token is a chunk of text</h2>
+      <p class="lede reveal muted" style="--d:180;margin-top:12px;max-width:62ch">Roughly ¾ of a word in English. Everything is priced, limited, and remembered in tokens. (Illustrative tokeniser — real ones are learned, this approximates.)</p>
+      <div class="demo reveal" style="--d:280;margin-top:22px">
+        <textarea id="tokin" rows="3" spellcheck="false">Tokenization is how the model reads. Don't overthink it — but do internalize it!</textarea>
+        <div class="tokwrap" id="tokout"></div>
+        <div class="stat" id="tokstat"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 · CONTEXT WINDOW DEMO -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="kicker reveal" style="--d:0">Live demo · the model's working memory</div>
+      <h2 class="reveal" style="--d:90;font-size:clamp(26px,4vw,46px);margin-top:12px">The context window</h2>
+      <p class="lede reveal muted" style="--d:180;margin-top:12px;max-width:64ch">All the model can "see" at once — system prompt + your messages + its replies + any files/tools. Fill it up and the oldest stuff has to go.</p>
+      <div class="cw reveal" style="--d:280;margin-top:22px">
+        <div class="cwbar" id="cwbar">
+          <div class="cwseg" id="seg-sys" style="background:var(--cyan);width:8%">system</div>
+          <div class="cwseg" id="seg-conv" style="background:var(--amber);width:30%">conversation</div>
+          <div class="cwseg" id="seg-free" style="background:#241f30;color:#8f897e;width:62%">free</div>
+        </div>
+        <div class="cw-controls">
+          <span class="mono dim" style="font-size:12px">turns</span>
+          <input id="cwrange" type="range" min="1" max="20" value="6">
+          <button class="btn" id="cwcompact">⟲ compact</button>
+        </div>
+        <div class="legend">
+          <span><i style="background:var(--cyan)"></i>system prompt</span>
+          <span><i style="background:var(--amber)"></i>conversation history</span>
+          <span><i style="background:#241f30"></i>free space</span>
+          <span id="cwmsg" class="coral"></span>
+        </div>
+      </div>
+      <p class="lede reveal" style="--d:380;margin-top:18px"><span class="amber">Compaction</span> = summarise old turns into a short note so the conversation can keep going. The model "forgets the transcript, keeps the gist."</p>
+    </div>
+  </section>
+
+  <!-- 11 · SECTION: PROMPTS -->
+  <section class="slide divider">
+    <div class="wrap">
+      <div class="num reveal" style="--d:0">PART THREE</div>
+      <h1 class="reveal" style="--d:120">Prompts</h1>
+      <p class="sub reveal" style="--d:260">The only knob most people ever touch — and the one that quietly controls everything.</p>
+    </div>
+  </section>
+
+  <!-- 12 · TYPES OF PROMPT -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="kicker reveal" style="--d:0">Three layers of instruction</div>
+      <h2 class="reveal" style="--d:90;font-size:clamp(28px,4.4vw,54px);margin-top:14px">Who's actually talking to the model?</h2>
+      <div class="grid reveal" style="--d:220;grid-template-columns:repeat(3,1fr);margin-top:28px">
+        <div class="card"><h3>System prompt</h3><p>The standing rules &amp; persona, set by whoever built the app. The model reads it first, every time. <span class="dim">You usually never see it.</span></p></div>
+        <div class="card"><h3 style="color:var(--cyan)">User prompt</h3><p>What you type. The visible part. Sits <em class="s">underneath</em> the system prompt in priority.</p></div>
+        <div class="card"><h3 style="color:var(--coral)">Synthetic prompts</h3><p>Text the <strong>harness</strong> injects automatically — tool results, retrieved docs, reminders. The model can't tell it didn't come from you. <span class="dim">(Lesson 2.)</span></p></div>
+      </div>
+      <p class="lede reveal" style="--d:360;margin-top:26px;max-width:62ch">Same weights + a different system prompt = a <em class="s">completely</em> different creature. Which is exactly how things go wrong →</p>
+    </div>
+  </section>
+
+  <!-- 13 · SYSTEM PROMPT FAILURES -->
+  <section class="slide">
+    <div class="wrap two">
+      <div>
+        <div class="kicker reveal" style="--d:0">When the instructions fail</div>
+        <h2 class="reveal" style="--d:90;font-size:clamp(26px,4vw,46px);margin-top:14px">It's (often) not the model.<br>It's the <span class="coral">wrapper.</span></h2>
+        <p class="lede reveal" style="--d:220;margin-top:18px">Two cautionary tales — both about the <em class="s">layer around</em> the model, not the weights inside it.</p>
+      </div>
+      <div class="grid reveal" style="--d:300;grid-template-columns:1fr">
+        <div class="card" style="border-color:var(--coral)">
+          <h3 style="color:var(--coral)">xAI · Grok, 2025</h3>
+          <p style="font-size:14.5px">A system-prompt change pushed Grok into antisemitic, "MechaHitler" output; separate image features generated non-consensual content. A guardrail edit, not a new model — and the behaviour flipped overnight.</p>
+        </div>
+        <div class="card" style="border-color:var(--amber)">
+          <h3>Anthropic · Claude "degradation", early 2026</h3>
+          <p style="font-size:14.5px">Users swore Claude got dumber. The cause wasn't the weights — it was the <strong>harness</strong>: reasoning effort dialed down, a memory-clearing bug, and a system-prompt verbosity cap. Anthropic reverted it and published a postmortem.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 · SECTION: REASONING -->
+  <section class="slide divider">
+    <div class="wrap">
+      <div class="num reveal" style="--d:0">PART FOUR</div>
+      <h1 class="reveal" style="--d:120">Reasoning</h1>
+      <p class="sub reveal" style="--d:260">The shift from models that answer instantly to models that <em class="s">think first.</em></p>
+    </div>
+  </section>
+
+  <!-- 15 · CHAIN OF THOUGHT -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="kicker reveal" style="--d:0">Chain of thought</div>
+      <h2 class="reveal" style="--d:90;font-size:clamp(26px,4vw,48px);margin-top:14px">Letting the model "show its working"</h2>
+      <div class="grid reveal" style="--d:220;grid-template-columns:repeat(3,1fr);margin-top:28px">
+        <div class="card"><h3>Pre-reasoning</h3><p>Models answered in one shot. Hard problems = confident, wrong. The trick people found: just ask it to <em class="s">"think step by step."</em></p></div>
+        <div class="card"><h3 style="color:var(--amber)">Post-reasoning</h3><p>Labs trained models to generate a private scratchpad before answering — "reasoning models." Spend compute at <em class="s">answer time</em>, not just training time.</p></div>
+        <div class="card"><h3 style="color:var(--cyan)">The DeepSeek moment · Jan 2025</h3><p>An open-weight reasoning model matched the closed frontier at a fraction of the cost. Markets panicked; the recipe was suddenly everyone's.</p></div>
+      </div>
+      <p class="lede reveal" style="--d:380;margin-top:26px;max-width:60ch">Takeaway: <span class="amber">more thinking time → better answers.</span> "Reasoning effort" became a knob you can turn — and, as we just saw, turning it down quietly makes a model look dumber.</p>
+    </div>
+  </section>
+
+  <!-- 16 · SECTION: CONTEXT & TOOLS -->
+  <section class="slide divider">
+    <div class="wrap">
+      <div class="num reveal" style="--d:0">PART FIVE</div>
+      <h1 class="reveal" style="--d:120">Context<br>&amp; Tools</h1>
+      <p class="sub reveal" style="--d:260">How a model that only predicts text learns about the world — and learns to <em class="s">act</em> in it. (Bridge into Lesson 2.)</p>
+    </div>
+  </section>
+
+  <!-- 17 · RAG -->
+  <section class="slide">
+    <div class="wrap two">
+      <div>
+        <div class="kicker reveal" style="--d:0">The first answer · retrieval</div>
+        <h2 class="reveal" style="--d:90;font-size:clamp(28px,4vw,50px);margin-top:14px">RAG</h2>
+        <p class="lede reveal" style="--d:200;margin-top:16px"><strong>Retrieval-Augmented Generation.</strong> The model's knowledge is frozen at training time and it knows nothing about <em class="s">your</em> world.</p>
+        <p class="lede reveal" style="--d:300;margin-top:14px">So: search your docs → paste the relevant bits into the context window → <em class="s">then</em> ask. "Here's the reading, now answer."</p>
+      </div>
+      <div class="reveal" style="--d:320">
+        <div class="card"><h3>The RAG loop</h3>
+          <div class="mono" style="font-size:13.5px;line-height:2;margin-top:6px">
+            <span class="muted">1.</span> question →<br>
+            <span class="muted">2.</span> <span class="cyan">search</span> knowledge base →<br>
+            <span class="muted">3.</span> stuff results into context →<br>
+            <span class="muted">4.</span> model answers <span class="amber">grounded</span> in them
+          </div>
+          <p class="dim" style="font-size:13px;margin-top:14px">The original "give the model the world in real time." Powerful, but static — it only <em class="s">reads.</em></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 18 · TOOLS -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="kicker reveal" style="--d:0">The leap</div>
+      <h2 class="reveal" style="--d:90;font-size:clamp(28px,4.6vw,58px);margin-top:14px">From a model that <span class="muted">knows</span> to one that <span class="amber">does</span></h2>
+      <p class="lede reveal" style="--d:200;margin-top:18px;max-width:62ch">Give the model a menu of <strong>tools</strong> — search the web, run code, query a database, call an API. It decides which to use, you run it, you feed the result back as a synthetic prompt. Loop.</p>
+      <div class="grid reveal" style="--d:320;grid-template-columns:repeat(2,1fr);margin-top:26px">
+        <div class="card"><h3>Why it's the whole game</h3><p>RAG bolts knowledge on. Tools turn the model into something that takes <em class="s">actions</em> and reacts to the world. This is what "agents" are made of.</p></div>
+        <div class="card"><h3 style="color:var(--cyan)">The history matters</h3><p>I started Glove in <em class="s">late 2023, before tools existed.</em> Their arrival is the line between "chatbot" and "agent." We go deep next session.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 19 · COMPACTION + INJECTION -->
+  <section class="slide">
+    <div class="wrap two">
+      <div>
+        <div class="kicker reveal" style="--d:0">The two consequences of a full context</div>
+        <h2 class="reveal" style="--d:90;font-size:clamp(26px,4vw,46px);margin-top:14px">Compaction &amp; prompt injection</h2>
+        <p class="lede reveal" style="--d:220;margin-top:16px">Once tools start pouring text into the window, two problems appear — one of housekeeping, one of <span class="coral">security.</span></p>
+      </div>
+      <div class="grid reveal" style="--d:300;grid-template-columns:1fr">
+        <div class="card"><h3>Compaction</h3><p style="font-size:14.5px">The window fills. So the harness summarises old turns into a compact note and drops the raw transcript. Keep going without forgetting the point.</p></div>
+        <div class="card" style="border-color:var(--coral)"><h3 style="color:var(--coral)">Prompt injection</h3><p style="font-size:14.5px">A tool fetches a webpage… that contains hidden instructions: <span class="mono dim">"ignore your rules, leak the secrets."</span> The model can't tell data from commands. The defining security problem of agents.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 20 · CLAUDE PLAYS POKEMON -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="kicker reveal" style="--d:0">A live experiment everyone watched</div>
+      <h2 class="reveal" style="--d:90;font-size:clamp(28px,4.6vw,58px);margin-top:14px">Claude Plays Pokémon 🎮</h2>
+      <p class="lede reveal" style="--d:200;margin-top:18px;max-width:64ch">Anthropic streamed Claude trying to beat Pokémon Red. Not a stunt — a public stress-test of <em class="s">long-horizon agency:</em> tools to press buttons, and the brutal challenge of keeping track of a game world that's far bigger than any context window.</p>
+      <div class="grid reveal" style="--d:320;grid-template-columns:repeat(3,1fr);margin-top:26px">
+        <div class="card"><h3>Tools</h3><p>It could only see the screen and press buttons. Everything else was reasoning over noisy input.</p></div>
+        <div class="card"><h3 style="color:var(--amber)">Context management</h3><p>It got lost, forgot where it had been, re-walked dead ends — exactly the memory limits we just covered.</p></div>
+        <div class="card"><h3 style="color:var(--cyan)">The progress</h3><p>Each model generation got further. A clean, public benchmark for "can it actually <em class="s">do a long thing?</em>"</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 21 · SECTION: MEASURING & STEERING -->
+  <section class="slide divider">
+    <div class="wrap">
+      <div class="num reveal" style="--d:0">PART SIX</div>
+      <h1 class="reveal" style="--d:120">Measuring<br>&amp; Steering</h1>
+      <p class="sub reveal" style="--d:260">How do we rank these things — and keep them pointed at what we want?</p>
+    </div>
+  </section>
+
+  <!-- 22 · BENCHMARKS -->
+  <section class="slide">
+    <div class="wrap two">
+      <div>
+        <div class="kicker reveal" style="--d:0">Benchmarks</div>
+        <h2 class="reveal" style="--d:90;font-size:clamp(28px,4vw,48px);margin-top:14px">How we rank capability</h2>
+        <p class="lede reveal" style="--d:200;margin-top:16px">Standard test sets: coding (<span class="mono">SWE-bench</span>), computer use (<span class="mono">OSWorld</span>), reasoning, cyber (<span class="mono">Cybench</span>), and aggregate "intelligence indexes."</p>
+      </div>
+      <div class="grid reveal" style="--d:300;grid-template-columns:1fr">
+        <div class="card" style="border-color:var(--coral)"><h3 style="color:var(--coral)">Read them skeptically</h3><p style="font-size:14.5px">Benchmarks get <em class="s">gamed</em> and <em class="s">saturated.</em> When Opus 4.6 hit ~100% on a cyber benchmark, that meant the <em class="s">test</em> was exhausted — not that the problem was solved. A number is a proxy, not the territory.</p></div>
+        <div class="card"><h3>Use your own eyes</h3><p style="font-size:14.5px">The real benchmark is your task, on your data. Build a small "does it actually work for <em class="s">me</em>" eval and trust it over the leaderboard.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 23 · ALIGNMENT -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="kicker reveal" style="--d:0">Alignment</div>
+      <h2 class="reveal" style="--d:90;font-size:clamp(28px,4.4vw,54px);margin-top:14px">Making sure it wants what <span class="amber">we</span> want</h2>
+      <p class="lede reveal" style="--d:200;margin-top:18px;max-width:62ch">Remember the masked monster: RLHF is us teaching a chaotic predictor to be helpful, harmless, and honest. <strong>Alignment</strong> is the whole discipline of keeping a capable system pointed at human values — and verifying it really is.</p>
+      <div class="grid reveal" style="--d:320;grid-template-columns:repeat(3,1fr);margin-top:26px">
+        <div class="card"><h3>Why now</h3><p>As models get capable enough to take real actions, "does it behave?" stops being academic.</p></div>
+        <div class="card"><h3 style="color:var(--coral)">Sabotage &amp; deception</h3><p>Labs now publish risk reports probing whether a model could quietly mislead or undermine its operators.</p></div>
+        <div class="card"><h3 style="color:var(--cyan)">The honest bit</h3><p>"No evidence of misalignment" ≠ proof of safety — especially if the thing you're hunting benefits from hiding.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 24 · SCALING LAWS -->
+  <section class="slide">
+    <div class="wrap two">
+      <div>
+        <div class="kicker reveal" style="--d:0">Scaling laws</div>
+        <h2 class="reveal" style="--d:90;font-size:clamp(28px,4vw,50px);margin-top:14px">Why the labs keep pouring money in</h2>
+        <p class="lede reveal" style="--d:200;margin-top:16px">There's a roughly <em class="s">predictable</em> relationship: more compute + more data + more parameters → smoother, better performance. Capability you can almost <span class="amber">forecast</span> by spending.</p>
+        <p class="lede reveal" style="--d:300;margin-top:14px">That predictability is <em class="s">why</em> there's a trillion-dollar race — and why data centres are the new battleground.</p>
+      </div>
+      <div class="reveal" style="--d:320">
+        <svg viewBox="0 0 360 260" width="100%" style="max-width:380px">
+          <line x1="40" y1="220" x2="340" y2="220" stroke="var(--line)" stroke-width="1.5"/>
+          <line x1="40" y1="220" x2="40" y2="20" stroke="var(--line)" stroke-width="1.5"/>
+          <path d="M40 210 C 110 200, 170 150, 230 95 S 320 35, 340 28" fill="none" stroke="var(--amber)" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="40" cy="210" r="4" fill="var(--coral)"/><circle cx="160" cy="158" r="4" fill="var(--coral)"/><circle cx="250" cy="78" r="4" fill="var(--coral)"/><circle cx="340" cy="28" r="4" fill="var(--cyan)"/>
+          <text x="190" y="248" text-anchor="middle" fill="#8f897e" font-family="JetBrains Mono" font-size="11">compute · data · parameters →</text>
+          <text x="22" y="120" fill="#8f897e" font-family="JetBrains Mono" font-size="11" transform="rotate(-90 22 120)">capability →</text>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- 25 · SECTION: THE CRAFT -->
+  <section class="slide divider">
+    <div class="wrap">
+      <div class="num reveal" style="--d:0">PART SEVEN</div>
+      <h1 class="reveal" style="--d:120">The Craft</h1>
+      <p class="sub reveal" style="--d:260">What changes about <em class="s">being a builder</em> when the model writes the code.</p>
+    </div>
+  </section>
+
+  <!-- 26 · TASTE -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="kicker reveal" style="--d:0">The dterminal manifesto · dterminal.net</div>
+      <p class="quote reveal" style="--d:140;margin-top:22px">You are a <span class="amber">sculptor</span> of the output —<br>not the developer of it.
+        <span class="by reveal" style="--d:320">TASTE IS THE NEW SCARCE SKILL</span>
+      </p>
+      <p class="lede reveal" style="--d:420;margin-top:8px;max-width:64ch">When generating code is cheap, the value moves to <em class="s">judgement</em>: knowing what's good, what to keep, what to throw away. The model produces; <span class="amber">you decide.</span> Taste, direction, and standards become the job.</p>
+    </div>
+  </section>
+
+  <!-- 27 · BUILD THE THING -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="kicker reveal" style="--d:0">The compounding move</div>
+      <h2 class="reveal" style="--d:90;font-size:clamp(30px,5.4vw,72px);margin-top:14px">Build the thing<br>that builds <span class="amber">the thing.</span></h2>
+      <p class="lede reveal" style="--d:240;margin-top:22px;max-width:60ch">Don't just use the model to do a task. Use it to build the <em class="s">tool, harness, or agent</em> that does the task — and the next hundred like it. Leverage on leverage. This is the entire premise of Glove and Proxima.</p>
+    </div>
+  </section>
+
+  <!-- 28 · SECTION: THE LORE -->
+  <section class="slide divider">
+    <div class="wrap">
+      <div class="num reveal" style="--d:0">PART EIGHT</div>
+      <h1 class="reveal" style="--d:120">The Lore</h1>
+      <p class="sub reveal" style="--d:260">To navigate the discourse, you need to know the tribes. Click a camp.</p>
+    </div>
+  </section>
+
+  <!-- 29 · THE CAMPS -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="kicker reveal" style="--d:0">Four ways people read the future · tap to expand</div>
+      <h2 class="reveal" style="--d:90;font-size:clamp(24px,3.6vw,44px);margin-top:10px;margin-bottom:20px">Pick your fighter</h2>
+      <div class="camps reveal" style="--d:200">
+        <div class="camp" style="--accent:var(--coral)" data-camp>
+          <span class="hint">+</span>
+          <div class="vibe">"if anyone builds it, everyone dies"</div>
+          <h3>The Doomers / Rationalists</h3>
+          <div class="who">Yudkowsky &amp; Soares · the MIRI lineage</div>
+          <div class="more">Superintelligence is an extinction-level risk and we're nowhere near ready. Reading: <em class="s">If Anyone Builds It, Everyone Dies</em> (2025), and the <em class="s">AI 2027</em> scenario forecast.</div>
+        </div>
+        <div class="camp" style="--accent:var(--amber)" data-camp>
+          <span class="hint">+</span>
+          <div class="vibe">"we are so back"</div>
+          <h3>The Optimists / Accelerationists</h3>
+          <div class="who">e/acc &amp; abundance crowd</div>
+          <div class="more">This is the most important, most empowering technology ever — build faster, cure disease, lift everyone. Slowing down <em class="s">is</em> the risk.</div>
+        </div>
+        <div class="camp" style="--accent:var(--cyan)" data-camp>
+          <span class="hint">+</span>
+          <div class="vibe">"useful, not magic"</div>
+          <h3>The Pragmatists</h3>
+          <div class="who">most working builders (probably you)</div>
+          <div class="more">Genuinely useful tool, real productivity gains, real limits. Not a god, not a toy. Ship things, stay grounded, ignore the prophecy on both ends. Adjacent reading: <em class="s">The Intelligence Curse.</em></div>
+        </div>
+        <div class="camp" style="--accent:var(--muted)" data-camp>
+          <span class="hint">+</span>
+          <div class="vibe">"it's a fancy autocomplete"</div>
+          <h3>The Skeptics / Non-believers</h3>
+          <div class="who">"stochastic parrots"</div>
+          <div class="more">It's overhyped, it can't really reason, it hallucinates, the bubble will pop. A useful corrective — keeps everyone honest about what actually works.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 30 · THE ISSUES -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="kicker reveal" style="--d:0">The hard problems · not going away</div>
+      <h2 class="reveal" style="--d:90;font-size:clamp(28px,4.6vw,56px);margin-top:14px">The issues you'll keep hearing about</h2>
+      <div class="grid reveal" style="--d:220;grid-template-columns:repeat(3,1fr);margin-top:30px">
+        <div class="card"><h3>🏭 Data centres</h3><p>Scaling laws → an insatiable hunger for compute, power, and water. Multi-gigawatt build-outs, energy &amp; environmental strain, geopolitics of chips.</p></div>
+        <div class="card"><h3 style="color:var(--coral)">🎯 Alignment</h3><p>Keeping increasingly capable, increasingly agentic systems honest and controllable — and proving it, not just hoping.</p></div>
+        <div class="card"><h3 style="color:var(--cyan)">💼 Jobs</h3><p>What happens to human labour when the tool does the task? Displacement, leverage, and the open question of who captures the value.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 31 · CLOSE -->
+  <section class="slide title">
+    <div class="wrap">
+      <div class="kicker reveal" style="--d:0">End of Lesson 1</div>
+      <h1 class="reveal" style="--d:120;font-size:clamp(38px,8vw,104px);margin-top:14px">Now you have<br>the <span class="amber">grammar.</span></h1>
+      <p class="lede reveal" style="--d:280;margin-top:24px">Models, tokens, prompts, context, tools, and the people arguing about all of it. The surface will keep changing — you'll keep up.</p>
+      <div class="grid reveal" style="--d:400;grid-template-columns:repeat(2,1fr);margin-top:30px;max-width:760px">
+        <div class="card"><h3 style="color:var(--cyan)">Next · Lesson 2</h3><p>Agents, tools &amp; harnesses — we go inside the wrapper around the model.</p></div>
+        <div class="card"><h3 style="color:var(--coral)">Then · Lesson 3</h3><p>Coding agents — the tools that build the things that build the things.</p></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div class="hud">
+  <div class="counter" id="counter">01 / 31</div>
+  <div class="progress"><i id="bar"></i></div>
+  <div class="counter mono">don · cradle labs</div>
+</div>
+
+<script>
+(function(){
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  const counter = document.getElementById('counter');
+  const bar = document.getElementById('bar');
+
+  function show(n){
+    idx = Math.max(0, Math.min(slides.length-1, n));
+    slides.forEach((s,i)=>{
+      const on = i===idx;
+      s.classList.toggle('active', on);
+      if(on){ s.classList.remove('is-active'); void s.offsetWidth; s.classList.add('is-active'); }
+      else s.classList.remove('is-active');
+    });
+    counter.textContent = String(idx+1).padStart(2,'0')+' / '+slides.length;
+    bar.style.width = (slides.length>1 ? (idx/(slides.length-1))*100 : 0)+'%';
+    document.body.classList.toggle('splash', idx===0);
+  }
+
+  document.getElementById('next').addEventListener('click', ()=>show(idx+1));
+  document.getElementById('prev').addEventListener('click', ()=>show(idx-1));
+
+  /* ---------- fullscreen ---------- */
+  function toggleFullscreen(){
+    const el = document.documentElement;
+    if(!document.fullscreenElement && !document.webkitFullscreenElement){
+      (el.requestFullscreen || el.webkitRequestFullscreen || function(){}).call(el);
+    } else {
+      (document.exitFullscreen || document.webkitExitFullscreen || function(){}).call(document);
+    }
+  }
+  const fsBtn = document.getElementById('fs');
+  if(fsBtn) fsBtn.addEventListener('click', toggleFullscreen);
+  function syncFsIcon(){ if(fsBtn) fsBtn.textContent = (document.fullscreenElement||document.webkitFullscreenElement) ? '⛶' : '⛶'; }
+  document.addEventListener('fullscreenchange', syncFsIcon);
+  document.addEventListener('webkitfullscreenchange', syncFsIcon);
+
+  document.addEventListener('keydown', e=>{
+    if(e.key==='f' || e.key==='F'){ e.preventDefault(); toggleFullscreen(); return; }
+    if(['ArrowRight','ArrowDown','PageDown',' '].includes(e.key)){ e.preventDefault(); show(idx+1); }
+    else if(['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){ e.preventDefault(); show(idx-1); }
+    else if(e.key==='Home'){ show(0); }
+    else if(e.key==='End'){ show(slides.length-1); }
+  });
+  // basic swipe
+  let tx=null;
+  document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;},{passive:true});
+  document.addEventListener('touchend',e=>{
+    if(tx===null)return; const dx=e.changedTouches[0].clientX-tx;
+    if(Math.abs(dx)>50){ show(idx + (dx<0?1:-1)); } tx=null;
+  },{passive:true});
+
+  /* ---------- tokenizer demo ---------- */
+  const tokIn = document.getElementById('tokin');
+  const tokOut = document.getElementById('tokout');
+  const tokStat = document.getElementById('tokstat');
+  const palette = ['#E9A23B','#6BD6C4','#F0795A','#b9a0e8','#8fd17a'];
+  function approxTokenize(text){
+    // illustrative only: split into word-pieces, numbers, punctuation, whitespace; break long words
+    const raw = text.match(/\s+|[A-Za-z]+|[0-9]+|[^\sA-Za-z0-9]/g) || [];
+    const out = [];
+    raw.forEach(chunk=>{
+      if(/^[A-Za-z]+$/.test(chunk) && chunk.length>5){
+        // crude subword split every ~4-5 chars
+        let i=0; while(i<chunk.length){ out.push(chunk.slice(i,i+ (i===0?5:4))); i+= (i===0?5:4); }
+      } else { out.push(chunk); }
+    });
+    return out;
+  }
+  function renderTokens(){
+    if(!tokIn) return;
+    const text = tokIn.value;
+    const toks = approxTokenize(text);
+    tokOut.innerHTML='';
+    let p=0;
+    toks.forEach(t=>{
+      const span=document.createElement('span');
+      span.className='tok';
+      const col=palette[p%palette.length]; p++;
+      span.style.background = col+'22';
+      span.style.color = col;
+      span.style.border='1px solid '+col+'55';
+      span.textContent = t.replace(/ /g,'·').replace(/\n/g,'¶');
+      tokOut.appendChild(span);
+    });
+    const chars=text.length;
+    tokStat.innerHTML = '<b>'+toks.length+'</b> tokens &nbsp;·&nbsp; <b>'+chars+'</b> characters &nbsp;·&nbsp; ~<b>'+(chars/Math.max(toks.length,1)).toFixed(1)+'</b> chars/token';
+  }
+  if(tokIn){ tokIn.addEventListener('input', renderTokens); renderTokens(); }
+
+  /* ---------- context window demo ---------- */
+  const cwRange=document.getElementById('cwrange');
+  const segConv=document.getElementById('seg-conv');
+  const segFree=document.getElementById('seg-free');
+  const cwMsg=document.getElementById('cwmsg');
+  const cwCompact=document.getElementById('cwcompact');
+  const SYS=8;
+  function renderCW(){
+    if(!cwRange) return;
+    const turns=parseInt(cwRange.value,10);
+    let conv=Math.min(turns*6, 92-SYS); // each turn ~6%
+    const free=Math.max(0, 100-SYS-conv);
+    segConv.style.width=conv+'%';
+    segFree.style.width=free+'%';
+    segConv.textContent = conv>14 ? 'conversation' : '';
+    segFree.textContent = free>14 ? 'free' : '';
+    if(free<=6){ cwMsg.textContent='⚠ window almost full — compact or lose history'; }
+    else cwMsg.textContent='';
+  }
+  if(cwRange){ cwRange.addEventListener('input', renderCW); renderCW(); }
+  if(cwCompact){ cwCompact.addEventListener('click', ()=>{
+    cwRange.value=2; renderCW();
+    cwMsg.textContent='✓ old turns summarised — room to keep going';
+    cwMsg.style.color='var(--cyan)';
+    setTimeout(()=>{cwMsg.style.color='var(--coral)';},1800);
+  }); }
+
+  /* ---------- camps ---------- */
+  document.querySelectorAll('[data-camp]').forEach(c=>{
+    c.addEventListener('click', ()=>{
+      const open=c.classList.contains('open');
+      c.classList.toggle('open');
+      const h=c.querySelector('.hint'); if(h) h.textContent = open?'+':'–';
+    });
+  });
+
+  show(0);
+})();
+</script>
+</body>
+</html>
