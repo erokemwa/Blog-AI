@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Creatures of AI · Lesson 2 — Agents &amp; Tools</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..700&family=Hanken+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0c0b10; --ink2:#14121b; --panel:#171522; --paper:#ECE6DA;
+    --muted:#8f897e; --amber:#E9A23B; --coral:#F0795A; --cyan:#6BD6C4;
+    --violet:#b9a0e8; --green:#8fd17a;
+    --line:rgba(236,230,218,.12); --line2:rgba(236,230,218,.06);
+    --serif:"Fraunces",Georgia,serif; --sans:"Hanken Grotesk",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--ink);color:var(--paper);font-family:var(--sans);overflow:hidden;-webkit-font-smoothing:antialiased}
+  body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-image:radial-gradient(1200px 600px at 80% -10%, rgba(233,162,59,.10), transparent 60%),radial-gradient(900px 500px at -10% 110%, rgba(107,214,196,.07), transparent 60%)}
+  body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.035;
+    background-image:linear-gradient(var(--paper) 1px,transparent 1px),linear-gradient(90deg,var(--paper) 1px,transparent 1px);background-size:46px 46px}
+
+  .deck{position:relative;z-index:1;height:100%;width:100%}
+  .slide{position:absolute;inset:0;display:none;padding:clamp(24px,5.5vw,100px);flex-direction:column;justify-content:center;height:100%}
+  .slide.active{display:flex}
+  .wrap{max-width:1180px;width:100%;margin:0 auto}
+
+  .reveal{opacity:0;transform:translateY(20px)}
+  .slide.is-active .reveal{animation:rise .66s cubic-bezier(.2,.75,.2,1) forwards;animation-delay:calc(var(--d,0)*1ms)}
+  @keyframes rise{to{opacity:1;transform:none}}
+
+  h1{font-family:var(--serif);font-weight:500;line-height:.98;letter-spacing:-.02em}
+  h2{font-family:var(--serif);font-weight:500;line-height:1.0;letter-spacing:-.015em}
+  .kicker{font-family:var(--mono);font-size:clamp(11px,1vw,13px);letter-spacing:.28em;text-transform:uppercase;color:var(--amber)}
+  .lede{font-size:clamp(16px,1.6vw,22px);line-height:1.5;max-width:48ch}
+  .muted{color:var(--muted)} .amber{color:var(--amber)} .coral{color:var(--coral)} .cyan{color:var(--cyan)} .violet{color:var(--violet)} .green{color:var(--green)}
+  .mono{font-family:var(--mono)} em.s{font-style:italic;font-family:var(--serif)} strong{font-weight:600}
+  a{color:var(--cyan);text-decoration:none;border-bottom:1px solid rgba(107,214,196,.35)}
+
+  .hud{position:fixed;z-index:20;bottom:22px;left:0;right:0;display:flex;align-items:center;gap:18px;padding:0 28px;pointer-events:none}
+  .progress{flex:1;height:2px;background:var(--line);border-radius:2px;overflow:hidden}
+  .progress > i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--amber),var(--coral));transition:width .5s cubic-bezier(.2,.7,.2,1)}
+  .counter{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.1em}
+  .brand{position:fixed;z-index:20;top:24px;left:28px;font-family:var(--mono);font-size:12px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase}
+  .brand b{color:var(--paper);font-weight:500}
+  .nav{position:fixed;z-index:20;top:20px;right:28px;display:flex;gap:8px}
+  .nav button{pointer-events:auto;background:var(--panel);border:1px solid var(--line);color:var(--paper);width:38px;height:32px;border-radius:8px;cursor:pointer;font-size:15px;transition:.2s}
+  .nav button:hover{border-color:var(--amber);color:var(--amber)}
+
+  .tag{display:inline-block;font-family:var(--mono);font-size:12px;letter-spacing:.06em;padding:5px 11px;border:1px solid var(--line);border-radius:999px;color:var(--muted)}
+  .grid{display:grid;gap:18px}
+  .card{background:linear-gradient(180deg,var(--panel),var(--ink2));border:1px solid var(--line);border-radius:16px;padding:22px}
+  .card h3{font-family:var(--mono);font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);margin-bottom:9px}
+  .card p{font-size:14.5px;line-height:1.5}
+  .dim{color:var(--muted)} .pill-row{display:flex;flex-wrap:wrap;gap:10px}
+  .two{display:grid;grid-template-columns:1.05fr .95fr;gap:42px;align-items:center}
+  ul.clean{list-style:none} ul.clean li{position:relative;padding-left:22px;margin:11px 0;font-size:clamp(15px,1.5vw,18px);line-height:1.45}
+  ul.clean li::before{content:"▸";position:absolute;left:0;color:var(--amber)}
+
+  .divider .num{font-family:var(--mono);font-size:clamp(13px,1.3vw,16px);color:var(--coral);letter-spacing:.3em}
+  .divider h1{font-size:clamp(48px,11vw,150px);margin-top:8px}
+  .divider .sub{font-size:clamp(16px,1.6vw,21px);color:var(--muted);margin-top:18px;max-width:42ch}
+  .title h1{font-size:clamp(44px,9.5vw,124px)} .title .glyph{font-family:var(--mono);color:var(--amber)}
+
+  .demo{background:var(--ink2);border:1px solid var(--line);border-radius:16px;padding:22px}
+  .btn{background:var(--panel);border:1px solid var(--line);color:var(--paper);font-family:var(--mono);font-size:13px;padding:9px 14px;border-radius:9px;cursor:pointer;transition:.2s}
+  .btn:hover{border-color:var(--amber);color:var(--amber)}
+  .btn.active{background:var(--amber);color:#0c0b10;border-color:var(--amber);font-weight:700}
+  .btn.run{border-color:var(--cyan);color:var(--cyan)} .btn.run:hover{background:var(--cyan);color:#0c0b10}
+  .seg{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 16px}
+  .plabel{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.08em;display:block;margin-bottom:3px}
+  .ticket{font-family:var(--mono);font-size:14px;line-height:1.7;background:#0a0910;border:1px dashed var(--line);border-radius:12px;padding:18px;margin-top:6px}
+  .ticket .k{color:var(--coral)} .ticket .v{color:var(--amber)} .ticket .out{color:var(--cyan);font-weight:700}
+
+  /* nested boxes */
+  .nest{position:relative;border-radius:18px;padding:20px;text-align:center}
+  .nest .lab{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;display:block;margin-bottom:12px}
+  .nest.harness{border:1.5px solid var(--coral);background:rgba(240,121,90,.05)} .nest.harness>.lab{color:var(--coral)}
+  .nest.agent{border:1.5px solid var(--amber);background:rgba(233,162,59,.06)} .nest.agent>.lab{color:var(--amber)}
+  .nest.model{border:1.5px solid var(--cyan);background:rgba(107,214,196,.08);padding:26px 20px} .nest.model>.lab{color:var(--cyan)}
+  .nest.model .core{font-family:var(--serif);font-size:clamp(20px,2.2vw,30px)}
+  .nest .side{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.6}
+
+  /* trace stepper */
+  .trace{background:#0a0910;border:1px solid var(--line);border-radius:14px;padding:16px 18px;font-family:var(--mono);font-size:13.5px;line-height:1.65;min-height:230px}
+  .line{opacity:0;transform:translateY(6px);transition:.35s;margin:7px 0;display:none}
+  .line.show{opacity:1;transform:none;display:block}
+  .who{display:inline-block;min-width:108px;font-weight:700;letter-spacing:.04em}
+  .w-user{color:var(--paper)} .w-model{color:var(--amber)} .w-call{color:var(--violet)} .w-result{color:var(--cyan)} .w-final{color:var(--green)}
+  .tbar{display:flex;gap:10px;align-items:center;margin-top:14px}
+
+  /* agent loop */
+  .loop{display:grid;grid-template-columns:1fr;gap:10px;position:relative}
+  .stage{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:var(--ink2);transition:.3s;display:flex;align-items:center;gap:14px}
+  .stage.on{border-color:var(--amber);background:rgba(233,162,59,.10);box-shadow:0 0 0 1px var(--amber) inset}
+  .stage .n{font-family:var(--mono);font-size:12px;color:var(--coral);min-width:22px}
+  .stage .t{font-weight:600;font-size:15px} .stage .d{font-size:12.5px;color:var(--muted);margin-top:2px}
+  .stage.stop.on{border-color:var(--green);background:rgba(143,209,122,.10);box-shadow:0 0 0 1px var(--green) inset}
+  .loopcap{font-family:var(--mono);font-size:13px;color:var(--paper);background:#0a0910;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:6px;min-height:42px}
+  .iter{font-family:var(--mono);font-size:12px;color:var(--cyan)}
+
+  .systems{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .sys{background:linear-gradient(180deg,var(--panel),var(--ink2));border:1px solid var(--line);border-radius:16px;padding:18px 18px}
+  .sys h3{font-family:var(--serif);font-weight:500;font-size:20px;margin-bottom:3px}
+  .sys .meta{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.04em;margin-bottom:9px}
+  .sys p{font-size:13px;line-height:1.5;color:var(--paper)}
+  .sys.free{border-color:var(--green)} .sys.free .meta{color:var(--green)}
+  .sys.mine{border-color:var(--amber)} .sys.mine .meta{color:var(--amber)}
+
+  .quote{font-family:var(--serif);font-style:italic;font-size:clamp(24px,3.6vw,52px);line-height:1.12}
+  .quote .by{display:block;font-style:normal;font-family:var(--mono);font-size:14px;letter-spacing:.1em;color:var(--muted);margin-top:22px}
+
+  .hintbar{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:20;font-family:var(--mono);font-size:11px;color:var(--muted);opacity:0;transition:.4s;pointer-events:none}
+  .splash .hintbar{opacity:1}
+  @media (max-width:820px){.two{grid-template-columns:1fr;gap:22px}.systems{grid-template-columns:1fr}}
+</style>
+</head>
+<body class="splash">
+
+<div class="brand"><b>Creatures of AI</b> &nbsp;·&nbsp; Lesson 02</div>
+<div class="nav">
+  <button id="prev" aria-label="Previous">‹</button>
+  <button id="next" aria-label="Next">›</button>
+  <button id="fs" aria-label="Fullscreen" title="Fullscreen (F)">⛶</button>
+</div>
+
+<div class="deck" id="deck">
+
+  <!-- 1 · TITLE -->
+  <section class="slide title">
+    <div class="wrap">
+      <div class="kicker reveal" style="--d:0">Lesson 2 of 3 · building on the fundamentals</div>
+      <h1 class="reveal" style="--d:120;margin-top:18px">Agents<span class="glyph"> &amp; </span>Tools</h1>
+      <p class="lede reveal" style="--d:260;margin-top:24px"><span class="amber">Last time we learned the grammar.</span> Today we learn the verbs — how a model that only predicts text gets wrapped into something that <em class="s">does things.</em></p>
+      <div class="pill-row reveal" style="--d:380;margin-top:28px">
+        <span class="tag dim">functions → tools → the agent loop → harnesses → real systems</span>
+      </div>
+    </div>
+    <div class="hintbar">← → to navigate · F for fullscreen</div>
+  </section>
+
+  <!-- 2 · RECAP -->
+  <section class="slide">
+    <div class="wrap two">
+      <div>
+        <div class="kicker reveal" style="--d:0">Where we left off</div>
+        <h2 class="reveal" style="--d:90;font-size:clamp(28px,4.2vw,52px);margin-top:14px">The model is just the <span class="cyan">brain.</span></h2>
+        <p class="lede reveal" style="--d:200;margin-top:18px">On its own it does one thing: read context, predict text. It can't browse, run code, or remember past today.</p>
+        <p class="lede reveal" style="--d:300;margin-top:14px">Everything we build this lesson is <em class="s">scaffolding around that brain.</em> Same creature — new powers.</p>
+      </div>
+      <div class="grid reveal" style="--d:300;grid-template-columns:1fr">
+        <div class="card"><h3>From last time</h3><p class="dim">Tokens · context window · system / user / <span class="coral">synthetic</span> prompts · reasoning · the difference between knowing and doing.</p></div>
+        <div class="card"><h3 style="color:var(--cyan)">Today's throughline</h3><p>A <strong>function</strong> is a unit of work → a <strong>tool</strong> is a function the model can call → an <strong>agent</strong> wraps the model and runs the <strong>loop</strong> → a <strong>harness</strong> wraps the agent with guardrails.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · DIVIDER FUNCTIONS -->
+  <section class="slide divider">
+    <div class="wrap">
+      <div class="num reveal" style="--d:0">PART ONE</div>
+      <h1 class="reveal" style="--d:120">Functions</h1>
+      <p class="sub reveal" style="--d:260">Before tools, before agents — the humble unit everything is built from. No code background needed.</p>
+    </div>
+  </section>
+
+  <!-- 4 · WHAT IS A FUNCTION -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="kicker reveal" style="--d:0">The most important idea in the building</div>
+      <h2 class="reveal" style="--d:90;font-size:clamp(28px,4.4vw,54px);margin-top:14px">A function is <span class="amber">a defined piece of work</span></h2>
+      <p class="lede reveal muted" style="--d:180;margin-top:14px;max-width:64ch">Give it some inputs, it does one well-defined job, it hands back a result. A recipe. A vending machine. A coffee order.</p>
+      <div class="reveal" style="--d:300;margin-top:30px">
+        <svg viewBox="0 0 920 200" width="100%" style="max-width:920px;display:block;margin:0 auto">
+          <!-- inputs -->
+          <rect x="10" y="55" width="170" height="90" rx="12" fill="rgba(240,121,90,.08)" stroke="var(--coral)" stroke-width="1.5"/>
+          <text x="95" y="90" text-anchor="middle" fill="var(--coral)" font-family="JetBrains Mono" font-size="13">INPUTS</text>
+          <text x="95" y="115" text-anchor="middle" fill="#ECE6DA" font-family="JetBrains Mono" font-size="13">(parameters)</text>
+          <!-- arrow -->
+          <path d="M185 100 H 320" stroke="var(--muted)" stroke-width="2" marker-end="url(#a2)"/>
+          <!-- machine -->
+          <rect x="330" y="35" width="260" height="130" rx="16" fill="rgba(233,162,59,.08)" stroke="var(--amber)" stroke-width="2"/>
+          <text x="460" y="90" text-anchor="middle" fill="var(--amber)" font-family="Fraunces" font-style="italic" font-size="24">the work</text>
+          <text x="460" y="120" text-anchor="middle" fill="var(--muted)" font-family="JetBrains Mono" font-size="12">does one job</text>
+          <!-- arrow -->
+          <path d="M595 100 H 730" stroke="var(--muted)" stroke-width="2" marker-end="url(#a2)"/>
+          <!-- output -->
+          <rect x="740" y="55" width="170" height="90" rx="12" fill="rgba(107,214,196,.08)" stroke="var(--cyan)" stroke-width="1.5"/>
+          <text x="825" y="90" text-anchor="middle" fill="var(--cyan)" font-family="JetBrains Mono" font-size="13">OUTPUT</text>
+          <text x="825" y="115" text-anchor="middle" fill="#ECE6DA" font-family="JetBrains Mono" font-size="13">(result)</text>
+          <defs><marker id="a2" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="var(--muted)"/></marker></defs>
+        </svg>
+      </div>
+      <p class="lede reveal" style="--d:440;margin-top:24px;max-width:70ch"><span class="mono coral">brewCoffee</span><span class="mono">(size, shots, milk)</span> → <span class="mono cyan">a cup of coffee</span>. The name says what it does; the <span class="amber">parameters</span> shape exactly what comes out.</p>
+    </div>
+  </section>
+
+  <!-- 5 · PARAMETER PLAYGROUND -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="kicker reveal" style="--d:0">Live · the parameters decide the outcome</div>
+      <h2 class="reveal" style="--d:90;font-size:clamp(24px,3.6vw,44px);margin-top:10px">Same function, different inputs</h2>
+      <div class="two reveal" style="--d:220;margin-top:18px;align-items:start">
+        <div class="demo">
+          <span class="plabel">size</span>
+          <div class="seg" data-group="size"><button class="btn" data-v="small">small</button><button class="btn active" data-v="medium">medium</button><button class="btn" data-v="large">large</button></div>
+          <span class="plabel">shots</span>
+          <div class="seg" data-group="shots"><button class="btn active" data-v="1">1</button><button class="btn" data-v="2">2</button><button class="btn" data-v="3">3</button></div>
+          <span class="plabel">milk</span>
+          <div class="seg" data-group="milk"><button class="btn" data-v="none">none</button><button class="btn active" data-v="oat">oat</button><button class="btn" data-v="whole">whole</button></div>
+        </div>
+        <div>
+          <div class="mono dim" style="font-size:13px;margin-bottom:8px"><span class="coral">brewCoffee</span>(<span id="argstr"></span>)</div>
+          <div class="ticket" id="ticket"></div>
+          <p class="dim" style="font-size:13.5px;margin-top:14px;line-height:1.5">No new function. No new code. Just different <span class="amber">parameters</span> → a different result. This is the whole knob the agent gets to turn.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 · DIVIDER TOOLS -->
+  <section class="slide divider">
+    <div class="wrap">
+      <div class="num reveal" style="--d:0">PART TWO</div>
+      <h1 class="reveal" style="--d:120">Tools</h1>
+      <p class="sub reveal" style="--d:260">Plot twist: a tool is just a function — handed to the model, with a label that says what it's for.</p>
+    </div>
+  </section>
+
+  <!-- 7 · TOOLS ARE FUNCTIONS -->
+  <section class="slide">
+    <div class="wrap two">
+      <div>
+        <div class="kicker reveal" style="--d:0">Registering a tool</div>
+        <h2 class="reveal" style="--d:90;font-size:clamp(26px,3.8vw,46px);margin-top:14px">A tool = a function +<br>a <span class="amber">description</span> the model can read</h2>
+        <ul class="clean reveal" style="--d:220;margin-top:16px">
+          <li>Take a function (<span class="mono coral">get_weather</span>).</li>
+          <li>Write a plain-language description &amp; list its parameters.</li>
+          <li><strong>Register</strong> it with the agent — it gets appended to the system prompt.</li>
+          <li>Now the model <em class="s">knows the tool exists</em> and how to call it.</li>
+        </ul>
+      </div>
+      <div class="reveal" style="--d:320">
+        <div class="card">
+          <h3>What the model actually sees</h3>
+          <div class="mono" style="font-size:12.5px;line-height:1.7;background:#0a0910;border:1px solid var(--line);border-radius:10px;padding:14px;margin-top:6px">
+            <span class="dim"># appended to the system prompt</span><br>
+            <span class="cyan">tool</span>: <span class="amber">get_weather</span><br>
+            <span class="cyan">desc</span>: "current weather for a city"<br>
+            <span class="cyan">params</span>: { city: <span class="coral">string</span> }<br><br>
+            <span class="cyan">tool</span>: <span class="amber">send_email</span><br>
+            <span class="cyan">desc</span>: "send an email to someone"<br>
+            <span class="cyan">params</span>: { to, subject, body }
+          </div>
+          <p class="dim" style="font-size:13px;margin-top:12px">A menu. The model reads the menu and decides what to order.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · AGENT = WRAPPER -->
+  <section class="slide">
+    <div class="wrap two">
+      <div>
+        <div class="kicker reveal" style="--d:0">What an agent is</div>
+        <h2 class="reveal" style="--d:90;font-size:clamp(26px,3.8vw,48px);margin-top:14px">An agent <span class="amber">wraps the model</span> and makes the decisions</h2>
+        <p class="lede reveal" style="--d:200;margin-top:16px">The model can't <em class="s">do</em> anything by itself. The agent is the wrapper that:</p>
+        <ul class="clean reveal" style="--d:300;margin-top:8px">
+          <li>holds the <strong>system prompt + tool menu</strong></li>
+          <li>sends context to the model</li>
+          <li>reads back its decision: <em class="s">which tool, which parameters</em></li>
+          <li>actually runs the tool, then loops</li>
+        </ul>
+      </div>
+      <div class="reveal" style="--d:320">
+        <div class="nest agent">
+          <span class="lab">Agent · the decision-maker</span>
+          <div class="nest model">
+            <span class="lab">Model</span>
+            <div class="core">predicts text</div>
+          </div>
+          <div class="side">+ system prompt &nbsp;·&nbsp; + tool menu &nbsp;·&nbsp; + the loop</div>
+        </div>
+        <p class="dim" style="font-size:13px;margin-top:14px;text-align:center">Same brain from Lesson 1 — now sitting inside something that can act on its answers.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9 · DIVIDER EXAMPLE -->
+  <section class="slide divider">
+    <div class="wrap">
+      <div class="num reveal" style="--d:0">YOU ASKED FOR THIS</div>
+      <h1 class="reveal" style="--d:120;font-size:clamp(40px,9vw,120px)">A concrete<br>example</h1>
+      <p class="sub reveal" style="--d:260">One agent, a handful of tools, one user request. Watch it decide. Step through it →</p>
+    </div>
+  </section>
+
+  <!-- 10 · TRACE STEPPER -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="kicker reveal" style="--d:0">Live trace · press Step</div>
+      <h2 class="reveal" style="--d:80;font-size:clamp(22px,3.2vw,38px);margin-top:8px">A travel assistant with 4 tools</h2>
+      <p class="reveal mono dim" style="--d:140;font-size:12.5px;margin-top:6px">tools available: <span class="amber">search_flights</span> · <span class="amber">create_calendar_event</span> · <span class="amber">get_weather</span> · <span class="amber">send_email</span></p>
+      <div class="reveal" style="--d:220;margin-top:14px">
+        <div class="trace" id="trace">
+          <div class="line" data-l><span class="who w-user">USER ▸</span> "Find me a cheap flight to Mombasa next Friday and put it on my calendar."</div>
+          <div class="line" data-l><span class="who w-model">MODEL ▸</span> I need flight options first. I'll call a tool. <span class="dim">← a model result: a decision, not an answer</span></div>
+          <div class="line" data-l><span class="who w-call">TOOL CALL ▸</span> search_flights(<span class="cyan">dest</span>="MBA", <span class="cyan">date</span>="next Fri")</div>
+          <div class="line" data-l><span class="who w-result">TOOL RESULT ▸</span> 3 flights. Cheapest: KSh 8,400, dep 09:15. <span class="dim">← real data from the world</span></div>
+          <div class="line" data-l><span class="who w-model">MODEL ▸</span> Good. Now schedule it. Another tool call.</div>
+          <div class="line" data-l><span class="who w-call">TOOL CALL ▸</span> create_calendar_event(<span class="cyan">title</span>="Flight → Mombasa", <span class="cyan">time</span>="Fri 09:15")</div>
+          <div class="line" data-l><span class="who w-result">TOOL RESULT ▸</span> event created ✓</div>
+          <div class="line" data-l><span class="who w-final">MODEL ▸</span> "Booked-ready: KSh 8,400 flight Friday 09:15, added to your calendar." <span class="dim">← final text answer. no tool. done.</span></div>
+        </div>
+        <div class="tbar">
+          <button class="btn run" id="stepBtn">Step ▸</button>
+          <span class="mono dim" id="stepInfo" style="font-size:12.5px"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 · MODEL vs TOOL RESULTS -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="kicker reveal" style="--d:0">The two kinds of "result" in that trace</div>
+      <h2 class="reveal" style="--d:90;font-size:clamp(26px,4vw,50px);margin-top:14px">Don't confuse these two</h2>
+      <div class="grid reveal" style="--d:220;grid-template-columns:1fr 1fr;margin-top:26px">
+        <div class="card" style="border-color:var(--amber)"><h3>Model result</h3><p>What the <em class="s">model</em> produces: either a <strong>tool call</strong> (a request — "run this with these parameters") or a <strong>final text answer.</strong> It's the brain's decision. It never touches the world directly.</p></div>
+        <div class="card" style="border-color:var(--cyan)"><h3 style="color:var(--cyan)">Tool result</h3><p>What the <em class="s">tool</em> hands back after the agent runs it: real data — weather, flights, a created event. This gets fed <strong>back into the context</strong> as a synthetic prompt, and the loop continues.</p></div>
+      </div>
+      <p class="lede reveal" style="--d:380;margin-top:24px;max-width:66ch">The model proposes; the agent executes; the result returns; the model reads it and decides again. That back-and-forth <em class="s">is</em> the loop — which is exactly where we're going.</p>
+    </div>
+  </section>
+
+  <!-- 12 · DIVIDER LOOPS -->
+  <section class="slide divider">
+    <div class="wrap">
+      <div class="num reveal" style="--d:0">PART THREE</div>
+      <h1 class="reveal" style="--d:120">Loops</h1>
+      <p class="sub reveal" style="--d:260">A 60-second detour into the most ordinary idea in programming — because the agent is built on it.</p>
+    </div>
+  </section>
+
+  <!-- 13 · WHAT IS A LOOP -->
+  <section class="slide">
+    <div class="wrap two">
+      <div>
+        <div class="kicker reveal" style="--d:0">The plain idea</div>
+        <h2 class="reveal" style="--d:90;font-size:clamp(26px,4vw,48px);margin-top:14px">Repeat until done</h2>
+        <p class="lede reveal" style="--d:200;margin-top:16px">A loop does the same step over and over until some <span class="amber">condition</span> is met. Then it stops.</p>
+        <p class="lede reveal" style="--d:300;margin-top:14px"><em class="s">"Keep stirring until the sauce is smooth."</em> The stirring is the loop. "Smooth" is the <span class="coral">termination condition.</span></p>
+        <p class="lede reveal muted" style="--d:380;margin-top:14px">No exit condition → it runs forever. (Yes, agents can get stuck in loops. We'll come back to that.)</p>
+      </div>
+      <div class="reveal" style="--d:320">
+        <div class="card"><h3>In pseudocode</h3>
+          <div class="mono" style="font-size:14px;line-height:1.9;background:#0a0910;border:1px solid var(--line);border-radius:10px;padding:16px;margin-top:6px">
+            <span class="violet">while</span> ( <span class="coral">not</span> done ) {<br>
+            &nbsp;&nbsp;do_a_bit_of_work()<br>
+            &nbsp;&nbsp;<span class="cyan">check</span>: are we done?<br>
+            }<br>
+            <span class="green">→ exit</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 14 · DIVIDER AGENT LOOP -->
+  <section class="slide divider">
+    <div class="wrap">
+      <div class="num reveal" style="--d:0">PART FOUR · THE CENTRE OF EVERYTHING</div>
+      <h1 class="reveal" style="--d:120">The Agent<br>Loop</h1>
+      <p class="sub reveal" style="--d:260">Now we compose every primitive — context, model, tools, parameters, results, termination — into one cycle.</p>
+    </div>
+  </section>
+
+  <!-- 15 · AGENT LOOP VISUAL -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="kicker reveal" style="--d:0">Live · step through one full run</div>
+      <h2 class="reveal" style="--d:70;font-size:clamp(22px,3.2vw,38px);margin-top:6px">"What should I wear in Nairobi today?"</h2>
+      <div class="reveal" style="--d:160;margin-top:14px">
+        <div class="loop" id="loop">
+          <div class="stage" data-stage="0"><span class="n">1</span><div><div class="t">Assemble context</div><div class="d">system prompt + tool menu + conversation history so far</div></div></div>
+          <div class="stage" data-stage="1"><span class="n">2</span><div><div class="t">Model decides</div><div class="d">reads everything → a model result: tool call, or final answer?</div></div></div>
+          <div class="stage" data-stage="2"><span class="n">3</span><div><div class="t">Run tool → append result &nbsp;<span class="iter">↺ loops back to 1</span></div><div class="d">agent executes the call, feeds the tool result back into context</div></div></div>
+          <div class="stage stop" data-stage="3"><span class="n">✓</span><div><div class="t">Final answer → stop</div><div class="d">no tool needed → return text to the user, terminate the loop</div></div></div>
+        </div>
+        <div class="loopcap" id="loopcap">Press <b>Step ▸</b> to run the loop.</div>
+        <div class="tbar">
+          <button class="btn run" id="loopBtn">Step ▸</button>
+          <span class="iter" id="iterInfo">iteration 0</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 16 · HOW LOOPS RUN / TERMINATE -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="kicker reveal" style="--d:0">Reading the loop you just ran</div>
+      <h2 class="reveal" style="--d:90;font-size:clamp(26px,4vw,48px);margin-top:14px">It runs until the model <span class="green">stops asking</span></h2>
+      <div class="grid reveal" style="--d:220;grid-template-columns:repeat(3,1fr);margin-top:26px">
+        <div class="card"><h3>Keeps going while…</h3><p>the model keeps returning <em class="s">tool calls.</em> Each result enriches the context, so the next decision is better-informed.</p></div>
+        <div class="card" style="border-color:var(--green)"><h3 style="color:var(--green)">Terminates when…</h3><p>the model returns a <em class="s">plain text answer</em> with no tool call. Nothing left to fetch. Loop exits, user gets the reply.</p></div>
+        <div class="card" style="border-color:var(--coral)"><h3 style="color:var(--coral)">Safety stops</h3><p>max iterations, time limits, cost caps — so a confused agent can't loop forever. This is the <em class="s">harness's</em> job. ↘</p></div>
+      </div>
+      <p class="reveal mono dim" style="--d:380;margin-top:24px;font-size:13px">This exact pattern — input → context → model → tools → repeat → reply — is what <span class="amber">every</span> serious agent framework runs, from OpenClaw to Claude Code.</p>
+    </div>
+  </section>
+
+  <!-- 17 · DIVIDER SYNTHETIC -->
+  <section class="slide divider">
+    <div class="wrap">
+      <div class="num reveal" style="--d:0">PART FIVE</div>
+      <h1 class="reveal" style="--d:120">Feeding<br>the Loop</h1>
+      <p class="sub reveal" style="--d:260">Remember synthetic prompts from Lesson 1? Compaction, hooks, and skills are all ways of injecting them.</p>
+    </div>
+  </section>
+
+  <!-- 18 · COMPACTION / HOOKS / SKILLS -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="kicker reveal" style="--d:0">Three levers on "what the model sees each turn"</div>
+      <h2 class="reveal" style="--d:90;font-size:clamp(26px,4vw,50px);margin-top:14px">Managing the context, automatically</h2>
+      <div class="grid reveal" style="--d:220;grid-template-columns:repeat(3,1fr);margin-top:26px">
+        <div class="card"><h3>Compaction</h3><p>The window fills as the loop runs. So the agent <strong>summarises old turns</strong> into a short note and drops the raw transcript — injected back as a synthetic prompt. Keep going without forgetting the point.</p></div>
+        <div class="card" style="border-color:var(--violet)"><h3 style="color:var(--violet)">Hooks</h3><p>Code that <strong>fires at set points</strong> in the loop — before a tool runs, after a result returns. It can inject extra context, reformat, log, or <em class="s">block</em> an action. Your hands on the wheel mid-loop.</p></div>
+        <div class="card" style="border-color:var(--cyan)"><h3 style="color:var(--cyan)">Skills</h3><p>Packaged instructions + capabilities the agent <strong>loads when relevant</strong> ("how to write a report"). Pulled into context on demand instead of bloating every prompt.</p></div>
+      </div>
+      <p class="lede reveal" style="--d:380;margin-top:22px;max-width:68ch">All three are the same move: <span class="amber">quietly shaping the text the model reads</span> on each pass of the loop. The model never knows the difference — that's the point.</p>
+    </div>
+  </section>
+
+  <!-- 19 · DIVIDER HARNESS -->
+  <section class="slide divider">
+    <div class="wrap">
+      <div class="num reveal" style="--d:0">PART SIX</div>
+      <h1 class="reveal" style="--d:120">The Harness</h1>
+      <p class="sub reveal" style="--d:260">One more layer out. The thing that makes an agent safe enough to actually let loose.</p>
+    </div>
+  </section>
+
+  <!-- 20 · HARNESS -->
+  <section class="slide">
+    <div class="wrap two">
+      <div>
+        <div class="kicker reveal" style="--d:0">Wrapping the agent</div>
+        <h2 class="reveal" style="--d:90;font-size:clamp(26px,3.8vw,46px);margin-top:14px">A harness wraps the agent with <span class="coral">guardrails</span> &amp; plumbing</h2>
+        <p class="lede reveal" style="--d:200;margin-top:16px">The agent decides <em class="s">what</em> to do. The harness governs <em class="s">how</em> it's allowed to:</p>
+        <ul class="clean reveal" style="--d:300;margin-top:8px">
+          <li>permissions &amp; sandboxing — what tools it <em class="s">can't</em> touch</li>
+          <li>the loop runner, retries, max-iteration limits</li>
+          <li>guards against prompt injection &amp; runaway cost</li>
+          <li>logging, observability, human-in-the-loop approvals</li>
+        </ul>
+      </div>
+      <div class="reveal" style="--d:320">
+        <div class="nest harness">
+          <span class="lab">Harness · guardrails + plumbing</span>
+          <div class="nest agent">
+            <span class="lab">Agent · decides</span>
+            <div class="nest model"><span class="lab">Model</span><div class="core">predicts text</div></div>
+          </div>
+        </div>
+        <p class="dim" style="font-size:12.5px;margin-top:14px;text-align:center;line-height:1.5">Recall Lesson 1: Claude "got dumber" because the <span class="coral">harness</span> changed — not the model. <em class="s">This</em> is that layer.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 21 · DIVIDER MACRO -->
+  <section class="slide divider">
+    <div class="wrap">
+      <div class="num reveal" style="--d:0">PART SEVEN · ZOOM OUT</div>
+      <h1 class="reveal" style="--d:120">Agents in<br>the Wild</h1>
+      <p class="sub reveal" style="--d:260">The theory, made real. (Coding agents get their own lesson next — these are the rest.)</p>
+    </div>
+  </section>
+
+  <!-- 22 · SYSTEMS GRID -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="kicker reveal" style="--d:0">Same loop you just learned — wrapped differently</div>
+      <h2 class="reveal" style="--d:80;font-size:clamp(24px,3.6vw,42px);margin-top:8px">Five agent systems worth knowing</h2>
+      <div class="systems reveal" style="--d:180;margin-top:20px">
+        <div class="sys"><h3>OpenClaw</h3><div class="meta">open-source · self-hosted</div><p>The viral 2026 agent framework. Runs 24/7 as a daemon, wired to a dozen messaging apps, a marketplace of community skills. The agent loop, productised.</p></div>
+        <div class="sys"><h3>Hermes Agent</h3><div class="meta">nous research · open-source</div><p>A <em class="s">self-improving</em> agent — it writes its own skills from experience and builds a model of you across sessions. Agency that compounds over time.</p></div>
+        <div class="sys"><h3>Cofounder</h3><div class="meta">vertical · multi-agent</div><p>A whole crew of agents aimed at one job: spin up your startup — research, launch plans, reports. A glimpse of agents <em class="s">orchestrating</em> agents.</p></div>
+        <div class="sys mine"><h3>Proxima</h3><div class="meta">dterminal · that's mine</div><p>Agentic orchestration for teams that build with AI — a team-mate agent that lives where the team already works. We'll dig into orchestration next lesson.</p></div>
+        <div class="sys free"><h3>Notion Agents</h3><div class="meta">free &amp; easy · start here</div><p>The on-ramp. Give it a goal in plain language; it works autonomously across your workspace. No setup, no servers — the fastest way to <em class="s">feel</em> an agent.</p></div>
+        <div class="sys" style="border-style:dashed;display:flex;align-items:center;justify-content:center"><p class="dim" style="font-size:13px;text-align:center">…and the surface keeps changing.<br><span class="amber">The loop underneath doesn't.</span></p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 23 · START HERE -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="kicker reveal" style="--d:0">Your homework, if you want it</div>
+      <h2 class="reveal" style="--d:90;font-size:clamp(28px,4.6vw,58px);margin-top:14px">Go poke a real agent</h2>
+      <p class="lede reveal" style="--d:220;margin-top:18px;max-width:64ch">Open <span class="green">Notion</span>, give an agent a multi-step goal — <span class="mono dim">"build me a reading list on agents and summarise each"</span> — and <em class="s">watch the loop happen.</em> You'll recognise every piece: the tools, the calls, the results, the termination.</p>
+      <p class="lede reveal" style="--d:340;margin-top:16px"><span class="amber">Theory clicks when you've seen it run once.</span></p>
+    </div>
+  </section>
+
+  <!-- 24 · DIVIDER LORE -->
+  <section class="slide divider">
+    <div class="wrap">
+      <div class="num reveal" style="--d:0">PART EIGHT</div>
+      <h1 class="reveal" style="--d:120">The Lore</h1>
+      <p class="sub reveal" style="--d:260">We spent the whole lesson giving software agency. The culture has words for agency in people, too.</p>
+    </div>
+  </section>
+
+  <!-- 25 · NPC / HIGH AGENCY -->
+  <section class="slide">
+    <div class="wrap">
+      <div class="kicker reveal" style="--d:0">Vocabulary you'll hear everywhere</div>
+      <h2 class="reveal" style="--d:90;font-size:clamp(26px,4vw,48px);margin-top:14px">Agency — the meme &amp; the mindset</h2>
+      <div class="grid reveal" style="--d:220;grid-template-columns:1fr 1fr;margin-top:24px">
+        <div class="card" style="border-color:var(--muted)"><h3 style="color:var(--muted)">"NPC"</h3><p>From games — a non-player character running on a fixed script. Used (half-jokingly) for going through the motions on autopilot, waiting to be prompted. Low agency.</p></div>
+        <div class="card" style="border-color:var(--amber)"><h3>"High agency"</h3><p>The prized trait: seeing what needs doing and <em class="s">just doing it</em> — finding tools, taking initiative, not waiting for permission. The exact behaviour we engineer into agents.</p></div>
+      </div>
+      <p class="lede reveal" style="--d:380;margin-top:24px;max-width:68ch">The joke writes itself: we're teaching machines to be <span class="amber">high-agency</span> while half of us run like NPCs. The builders who win this era act like the agents they build — <em class="s">point yourself at a goal and loop until it's done.</em></p>
+    </div>
+  </section>
+
+  <!-- 26 · CLOSE -->
+  <section class="slide title">
+    <div class="wrap">
+      <div class="kicker reveal" style="--d:0">End of Lesson 2</div>
+      <h1 class="reveal" style="--d:120;font-size:clamp(36px,7.5vw,98px)">From a brain<br>to a <span class="amber">doer.</span></h1>
+      <p class="lede reveal" style="--d:280;margin-top:22px">Functions → tools → the agent that decides → the loop that runs → the harness that keeps it safe. You can now read any agent system as layers around a model.</p>
+      <div class="grid reveal" style="--d:400;grid-template-columns:repeat(2,1fr);margin-top:28px;max-width:780px">
+        <div class="card" style="border-color:var(--cyan)"><h3 style="color:var(--cyan)">Next · Lesson 3</h3><p>Coding agents — and going deeper into harnesses &amp; agent orchestration.</p></div>
+        <div class="card"><h3>Try before then</h3><p>Run one Notion agent on a real goal. Bring questions.</p></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div class="hud">
+  <div class="counter" id="counter">01 / 26</div>
+  <div class="progress"><i id="bar"></i></div>
+  <div class="counter mono">don · cradle labs</div>
+</div>
+
+<script>
+(function(){
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  let idx = 0;
+  const counter = document.getElementById('counter');
+  const bar = document.getElementById('bar');
+
+  function show(n){
+    idx = Math.max(0, Math.min(slides.length-1, n));
+    slides.forEach((s,i)=>{
+      const on = i===idx;
+      s.classList.toggle('active', on);
+      if(on){ s.classList.remove('is-active'); void s.offsetWidth; s.classList.add('is-active'); }
+      else s.classList.remove('is-active');
+    });
+    counter.textContent = String(idx+1).padStart(2,'0')+' / '+slides.length;
+    bar.style.width = (slides.length>1 ? (idx/(slides.length-1))*100 : 0)+'%';
+    document.body.classList.toggle('splash', idx===0);
+  }
+
+  document.getElementById('next').addEventListener('click', ()=>show(idx+1));
+  document.getElementById('prev').addEventListener('click', ()=>show(idx-1));
+
+  function toggleFullscreen(){
+    const el=document.documentElement;
+    if(!document.fullscreenElement && !document.webkitFullscreenElement){ (el.requestFullscreen||el.webkitRequestFullscreen||function(){}).call(el); }
+    else{ (document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document); }
+  }
+  const fsBtn=document.getElementById('fs'); if(fsBtn) fsBtn.addEventListener('click', toggleFullscreen);
+
+  document.addEventListener('keydown', e=>{
+    if(e.key==='f'||e.key==='F'){ e.preventDefault(); toggleFullscreen(); return; }
+    if(['ArrowRight','ArrowDown','PageDown',' '].includes(e.key)){ e.preventDefault(); show(idx+1); }
+    else if(['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){ e.preventDefault(); show(idx-1); }
+    else if(e.key==='Home'){ show(0); } else if(e.key==='End'){ show(slides.length-1); }
+  });
+  let tx=null;
+  document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;},{passive:true});
+  document.addEventListener('touchend',e=>{ if(tx===null)return; const dx=e.changedTouches[0].clientX-tx; if(Math.abs(dx)>50){ show(idx+(dx<0?1:-1)); } tx=null; },{passive:true});
+
+  /* ---------- parameter playground ---------- */
+  const params={size:'medium',shots:'1',milk:'oat'};
+  const prices={small:3.0,medium:3.5,large:4.0};
+  function renderTicket(){
+    const argstr=document.getElementById('argstr');
+    const ticket=document.getElementById('ticket');
+    if(!ticket) return;
+    if(argstr) argstr.innerHTML='<span class="amber">"'+params.size+'"</span>, <span class="amber">'+params.shots+'</span>, <span class="amber">"'+params.milk+'"</span>';
+    let price=prices[params.size]+ (parseInt(params.shots,10)-1)*0.6 + (params.milk==='oat'?0.5:params.milk==='whole'?0.2:0);
+    const milkTxt=params.milk==='none'?'black':params.milk+' milk';
+    const name=params.size.charAt(0).toUpperCase()+params.size.slice(1)+' '+(params.milk==='none'?'espresso':'latte');
+    ticket.innerHTML =
+      '<span class="k">drink</span>: <span class="v">'+name+'</span><br>'+
+      '<span class="k">shots</span>: <span class="v">'+params.shots+'</span> &nbsp; <span class="k">milk</span>: <span class="v">'+milkTxt+'</span><br>'+
+      '<br><span class="out">☕ → $'+price.toFixed(2)+'</span>';
+  }
+  document.querySelectorAll('.seg').forEach(seg=>{
+    const group=seg.getAttribute('data-group');
+    seg.querySelectorAll('.btn').forEach(b=>{
+      b.addEventListener('click',()=>{
+        seg.querySelectorAll('.btn').forEach(x=>x.classList.remove('active'));
+        b.classList.add('active'); params[group]=b.getAttribute('data-v'); renderTicket();
+      });
+    });
+  });
+  renderTicket();
+
+  /* ---------- trace stepper ---------- */
+  const traceLines=Array.from(document.querySelectorAll('#trace [data-l]'));
+  const stepBtn=document.getElementById('stepBtn');
+  const stepInfo=document.getElementById('stepInfo');
+  let ti=0;
+  function stepTrace(){
+    if(ti<traceLines.length){ traceLines[ti].classList.add('show'); ti++;
+      if(stepInfo) stepInfo.textContent=ti+' / '+traceLines.length;
+      if(ti===traceLines.length){ stepBtn.textContent='Replay ↺'; }
+    } else { traceLines.forEach(l=>l.classList.remove('show')); ti=0; stepBtn.textContent='Step ▸'; if(stepInfo) stepInfo.textContent=''; }
+  }
+  if(stepBtn) stepBtn.addEventListener('click', stepTrace);
+
+  /* ---------- agent loop ---------- */
+  const loopScript=[
+    {stage:0,iter:1,cap:"Context assembled: the question + the tool menu. Nothing about today's weather yet."},
+    {stage:1,iter:1,cap:"Model reads it. It can't know today's weather → returns a TOOL CALL, not an answer."},
+    {stage:2,iter:1,cap:"Agent runs get_weather(city=\"Nairobi\"). TOOL RESULT: 19°C, light rain. Appended to context. ↺"},
+    {stage:0,iter:2,cap:"Back to the top. Context now includes the weather result."},
+    {stage:1,iter:2,cap:"Model reads the enriched context. It has everything it needs → no tool call."},
+    {stage:3,iter:2,cap:"FINAL ANSWER: \"Light rain, 19°C — grab a jacket and an umbrella.\" Loop terminates. ✓"}
+  ];
+  const stages=Array.from(document.querySelectorAll('#loop .stage'));
+  const loopBtn=document.getElementById('loopBtn');
+  const loopcap=document.getElementById('loopcap');
+  const iterInfo=document.getElementById('iterInfo');
+  let li=0;
+  function stepLoop(){
+    if(li>=loopScript.length){ stages.forEach(s=>s.classList.remove('on')); li=0; loopcap.textContent='Press Step ▸ to run the loop again.'; iterInfo.textContent='iteration 0'; loopBtn.textContent='Step ▸'; return; }
+    const s=loopScript[li];
+    stages.forEach(st=>st.classList.toggle('on', parseInt(st.getAttribute('data-stage'),10)===s.stage));
+    loopcap.textContent=s.cap; iterInfo.textContent='iteration '+s.iter;
+    li++;
+    if(li>=loopScript.length) loopBtn.textContent='Reset ↺';
+  }
+  if(loopBtn) loopBtn.addEventListener('click', stepLoop);
+
+  show(0);
+})();
+</script>
+</body>
+</html>
